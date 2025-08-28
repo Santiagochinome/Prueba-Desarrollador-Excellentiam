@@ -1,0 +1,115 @@
+﻿@page "/facturas"
+@using Client.Models
+@using Client.Services
+@using MudBlazor
+@inject IFacturaService FacturaService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Facturas</PageTitle>
+
+<h3>Lista de Facturas</h3>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NuevaFactura">
+    Nueva Factura
+</MudButton>
+
+<MudButton Variant="Variant.Outlined"
+           Color="Color.Success"
+           OnClick="ExportarTodoExcel"
+           Class="ml-2">
+    <MudIcon Icon="@Icons.Material.Filled.Download" Class="mr-2" />
+    Exportar Todo Excel
+</MudButton>
+
+@if (facturas == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (!facturas.Any())
+{
+    <MudText>No hay facturas registradas.</MudText>
+}
+else
+{
+    <MudTable Items="@facturas" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Número</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Total</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="factura">
+            <MudTd>@factura.InvoiceNumber</MudTd>
+            <MudTd>@factura.Customer</MudTd>
+            <MudTd>@factura.IssueDate.ToShortDateString()</MudTd>
+            <MudTd>@factura.State</MudTd>
+            <MudTd>@factura.Total.ToString("C")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                               OnClick="@(() => VerDetalles(factura.Id))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => EditarFactura(factura.Id))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               OnClick="@(() => EliminarFactura(factura.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<Factura> facturas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarFacturas();
+    }
+
+    private async Task CargarFacturas()
+    {
+        facturas = await FacturaService.GetFacturas() ?? new List<Factura>();
+    }
+
+    private void NuevaFactura()
+    {
+        Navigation.NavigateTo("/facturas/nueva");
+    }
+
+    private void VerDetalles(int id)
+    {
+        Navigation.NavigateTo($"/facturas/{id}");
+    }
+
+    private void EditarFactura(int id)
+    {
+        Navigation.NavigateTo($"/facturas/editar/{id}");
+    }
+
+    private async Task EliminarFactura(int id)
+    {
+        await FacturaService.DeleteFactura(id);
+        await CargarFacturas();
+    }
+
+    private async Task ExportarTodoExcel()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/export/facturas/excel");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", content, "Facturas.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                Snackbar.Add("Exportación completada", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al exportar: {ex.Message}", Severity.Error);
+        }
+    }
+}

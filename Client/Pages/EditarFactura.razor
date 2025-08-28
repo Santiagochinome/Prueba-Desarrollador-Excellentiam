@@ -1,0 +1,170 @@
+﻿@page "/facturas/editar/{id:int}"
+@using Client.Models
+@using Client.Services
+@using MudBlazor
+@inject IFacturaService FacturaService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Editar Factura</PageTitle>
+
+@if (factura == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4">Editar Factura: @factura.InvoiceNumber</MudText>
+
+            <MudForm Model="factura" Validation="true" @ref="form">
+                <MudTextField @bind-Value="factura.InvoiceNumber"
+                              Label="Número de Factura"
+                              MaxLength="100"
+                              Required="true" />
+
+                <MudTextField @bind-Value="factura.Customer"
+                              Label="Cliente"
+                              MaxLength="200"
+                              Required="true" />
+
+                <MudDatePicker Date="@factura.IssueDate"
+                               DateChanged="@(value => factura.IssueDate = value ?? DateTime.Now)"
+                               Label="Fecha de Emisión" />
+
+                <MudSelect T="InvoiceStatus" @bind-Value="factura.State"
+                           Label="Estado"
+                           Required="true"
+                           Class="w-100">
+                    <MudSelectItem Value="@InvoiceStatus.Pending">Pendiente</MudSelectItem>
+                    <MudSelectItem Value="@InvoiceStatus.Paid">Pagada</MudSelectItem>
+                    <MudSelectItem Value="@InvoiceStatus.Cancelled">Cancelada</MudSelectItem>
+                </MudSelect>
+
+                <MudText Typo="Typo.h6" Class="mt-4">Detalles de la Factura</MudText>
+
+                @foreach (var (detalle, index) in factura.Detail.Select((d, i) => (d, i)))
+                {
+                    <MudCard Class="mb-3">
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2">Producto @(index + 1)</MudText>
+
+                            <MudTextField @bind-Value="detalle.Product"
+                                          Label="Producto"
+                                          Required="true" />
+
+                            <MudTextField @bind-Value="detalle.Amount"
+                                          Label="Cantidad"
+                                          InputType="InputType.Number"
+                                          Required="true" />
+
+                            <MudTextField @bind-Value="detalle.UnitPrice"
+                                          Label="Precio Unitario"
+                                          InputType="InputType.Number"
+                                          Required="true" />
+
+                            <MudText>Subtotal: @detalle.Subtotal.ToString("C")</MudText>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => RemoverDetalle(index))">
+                                Eliminar
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                }
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="AgregarDetalle"
+                           Class="mt-3">
+                    Agregar Producto
+                </MudButton>
+
+                <MudText Typo="Typo.h6" Class="mt-3">
+                    Total: @factura.Total.ToString("C")
+                </MudText>
+
+                <div class="mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="ActualizarFactura">
+                        Actualizar Factura
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Default"
+                               OnClick="Cancelar"
+                               Class="ml-2">
+                        Cancelar
+                    </MudButton>
+                </div>
+            </MudForm>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Factura factura;
+    private MudForm form;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarFactura();
+    }
+
+    private async Task CargarFactura()
+    {
+        try
+        {
+            factura = await FacturaService.GetFactura(Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar factura: {ex.Message}", Severity.Error);
+            Navigation.NavigateTo("/facturas");
+        }
+    }
+
+    private void AgregarDetalle()
+    {
+        factura.Detail.Add(new DetalleFactura());
+    }
+
+    private void RemoverDetalle(int index)
+    {
+        factura.Detail.RemoveAt(index);
+        RecalcularTotal();
+    }
+
+    private void RecalcularTotal()
+    {
+        factura.Total = factura.Detail.Sum(d => d.Subtotal);
+    }
+
+    private async Task ActualizarFactura()
+    {
+        try
+        {
+            factura.Total = factura.Detail.Sum(d => d.Subtotal);
+            await FacturaService.UpdateFactura(factura);
+
+            Snackbar.Add("Factura actualizada exitosamente", Severity.Success);
+            Navigation.NavigateTo("/facturas");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/facturas");
+    }
+}

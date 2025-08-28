@@ -1,0 +1,28 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build folders
+bin/
+obj/
+out/
+
+# NuGet
+*.nupkg
+packages/
+
+# Logs
+*.log
+
+# Rider
+.idea/
+
+# Resharper
+_ReSharper*/
+
+# Otros archivos temporales
+*.tmp
+*.cache

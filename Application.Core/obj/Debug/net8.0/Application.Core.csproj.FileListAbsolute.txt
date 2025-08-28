@@ -1,0 +1,12 @@
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\bin\Debug\net8.0\Application.Core.deps.json
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\bin\Debug\net8.0\Application.Core.dll
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\bin\Debug\net8.0\Application.Core.pdb
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.GeneratedMSBuildEditorConfig.editorconfig
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.AssemblyInfoInputs.cache
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.AssemblyInfo.cs
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.csproj.CoreCompileInputs.cache
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.sourcelink.json
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.dll
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\refint\Application.Core.dll
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\Application.Core.pdb
+F:\Users\santi\Documents\Prueba_Santiago-Chinome\Prueba_Excellentiam\Application.Core\obj\Debug\net8.0\ref\Application.Core.dll

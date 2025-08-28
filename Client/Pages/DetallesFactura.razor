@@ -1,0 +1,205 @@
+﻿@page "/facturas/{id:int}"
+@using Client.Models
+@using Client.Services
+@using MudBlazor
+@inject IFacturaService FacturaService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+
+<PageTitle>Detalles de Factura</PageTitle>
+
+<MudButton Variant="Variant.Outlined"
+           Color="Color.Success"
+           OnClick="@(() => ExportarDetallesExcel(factura.Id))"
+           Class="ml-2">
+    <MudIcon Icon="@Icons.Material.Filled.Download" Class="mr-2" />
+    Exportar Detalles Excel
+</MudButton>
+
+@if (factura == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <div class="d-flex justify-space-between align-center">
+                <MudText Typo="Typo.h4">Factura: @factura.InvoiceNumber</MudText>
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Default" 
+                          OnClick="VolverALista">
+                    ← Volver a Lista
+                </MudButton>
+            </div>
+
+            <MudGrid Class="mt-4">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h6">Información de la Factura</MudText>
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <div class="d-flex flex-column" style="gap: 12px;">
+                            <div>
+                                <strong>Número:</strong> @factura.InvoiceNumber
+                            </div>
+                            <div>
+                                <strong>Cliente:</strong> @factura.Customer
+                            </div>
+                            <div>
+                                <strong>Fecha:</strong> @factura.IssueDate.ToShortDateString()
+                            </div>
+                            <div class="d-flex align-center">
+                                <strong>Estado:</strong>
+                                <MudChip T="string"
+                                         Color="@GetColorEstado(factura.State)"
+                                         Variant="Variant.Filled"
+                                         Class="ml-2">
+                                    @GetTextoEstado(factura.State)
+                                </MudChip>
+                            </div>
+                            <div class="d-flex align-center">
+                                <strong>Total:</strong>
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Class="ml-2">
+                                    @factura.Total.ToString("C")
+                                </MudText>
+                            </div>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mt-6">Productos y Servicios</MudText>
+            
+            <MudTable Items="@factura.Detail" Hover="true" Breakpoint="Breakpoint.Sm" Class="mt-3">
+                <HeaderContent>
+                    <MudTh>Producto</MudTh>
+                    <MudTh>Cantidad</MudTh>
+                    <MudTh>Precio Unitario</MudTh>
+                    <MudTh>Subtotal</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="detalle">
+                    <MudTd>@detalle.Product</MudTd>
+                    <MudTd>@detalle.Amount</MudTd>
+                    <MudTd>@detalle.UnitPrice.ToString("C")</MudTd>
+                    <MudTd>@detalle.Subtotal.ToString("C")</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="3" align="right"><strong>Total:</strong></MudTd>
+                    <MudTd><strong>@factura.Total.ToString("C")</strong></MudTd>
+                </FooterContent>
+            </MudTable>
+
+            <div class="mt-4">
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Primary" 
+                          OnClick="@(() => EditarFactura(factura.Id))">
+                    Editar Factura
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Error" 
+                          OnClick="@(() => EliminarFactura(factura.Id))"
+                          Class="ml-2">
+                    Eliminar Factura
+                </MudButton>
+            </div>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Factura factura;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarFactura();
+    }
+
+    private async Task CargarFactura()
+    {
+        try
+        {
+            factura = await FacturaService.GetFactura(Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar factura: {ex.Message}", Severity.Error);
+            Navigation.NavigateTo("/facturas");
+        }
+    }
+
+    private void VolverALista()
+    {
+        Navigation.NavigateTo("/facturas");
+    }
+
+    private void EditarFactura(int id)
+    {
+        Navigation.NavigateTo($"/facturas/editar/{id}");
+    }
+
+    private async Task EliminarFactura(int id)
+    {
+        // Confirmación simple con JavaScript
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que quieres eliminar esta factura?");
+
+        if (confirmed)
+        {
+            try
+            {
+                await FacturaService.DeleteFactura(id);
+                Snackbar.Add("Factura eliminada exitosamente", Severity.Success);
+                Navigation.NavigateTo("/facturas");
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private Color GetColorEstado(InvoiceStatus estado)
+    {
+        return estado switch
+        {
+            InvoiceStatus.Pending => Color.Warning,
+            InvoiceStatus.Paid => Color.Success,
+            InvoiceStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetTextoEstado(InvoiceStatus estado)
+    {
+        return estado switch
+        {
+            InvoiceStatus.Pending => "Pendiente",
+            InvoiceStatus.Paid => "Pagada",
+            InvoiceStatus.Cancelled => "Cancelada",
+            _ => estado.ToString()
+        };
+    }
+
+    private async Task ExportarDetallesExcel(int facturaId)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/export/facturas/{facturaId}/detalles/excel");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", content, $"Detalles_Factura_{facturaId}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                Snackbar.Add("Exportación completada", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al exportar: {ex.Message}", Severity.Error);
+        }
+    }
+}

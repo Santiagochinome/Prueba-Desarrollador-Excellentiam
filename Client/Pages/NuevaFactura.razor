@@ -1,0 +1,187 @@
+﻿@page "/facturas/nueva"
+@using Client.Models
+@using Client.Services
+@using MudBlazor
+@inject IFacturaService FacturaService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Nueva Factura</PageTitle>
+
+<MudCard Class="p-4">
+    <MudCardContent>
+        <MudText Typo="Typo.h4" Class="mb-4">Crear Nueva Factura</MudText>
+
+        <MudForm @ref="form" Model="factura" Validation="true">
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="factura.InvoiceNumber"
+                                  Label="Número de Factura"
+                                  MaxLength="100"
+                                  Required="true"
+                                  Class="w-100" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="factura.Customer"
+                                  Label="Cliente"
+                                  MaxLength="200"
+                                  Required="true"
+                                  Class="w-100" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Date="factura.IssueDate"
+                                   DateChanged="@(value => factura.IssueDate = value ?? DateTime.Now)"
+                                   Label="Fecha de Emisión"
+                                   Class="w-100" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="InvoiceStatus" @bind-Value="factura.State"
+                               Label="Estado"
+                               Required="true"
+                               Class="w-100">
+                        <MudSelectItem Value="@InvoiceStatus.Pending">Pendiente</MudSelectItem>
+                        <MudSelectItem Value="@InvoiceStatus.Paid">Pagada</MudSelectItem>
+                        <MudSelectItem Value="@InvoiceStatus.Cancelled">Cancelada</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.h6" Class="mb-3">Detalles de la Factura</MudText>
+
+            @foreach (var (detalle, index) in factura.Detail.Select((d, i) => (d, i)))
+            {
+                <MudCard Class="mb-3 p-3">
+                    <MudGrid>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="detalle.Product"
+                                          Label="Producto"
+                                          Required="true"
+                                          Class="w-100" />
+                        </MudItem>
+
+                        <MudItem xs="6" sm="2">
+                            <MudTextField @bind-Value="detalle.Amount"
+                                          Label="Cantidad"
+                                          InputType="InputType.Number"
+                                          Min="1" Max="1000"
+                                          Required="true"
+                                          Class="w-100" />
+                        </MudItem>
+
+                        <MudItem xs="6" sm="3">
+                            <MudTextField @bind-Value="detalle.UnitPrice"
+                                          Label="Precio Unitario"
+                                          InputType="InputType.Number"
+                                          Min="0.01" Max="10000"
+                                          Required="true"
+                                          Class="w-100" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="2" Class="d-flex align-center">
+                            <MudText Typo="Typo.body2">
+                                Subtotal: @detalle.Subtotal.ToString("C")
+                            </MudText>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="1" Class="d-flex justify-end align-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           OnClick="@(() => RemoverDetalle(index))" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCard>
+            }
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       OnClick="AgregarDetalle"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Class="mt-2 mb-3">
+                Agregar Producto
+            </MudButton>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-3">
+                Total: @factura.Total.ToString("C")
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="GuardarFactura"
+                               Disabled="!factura.Detail.Any()"
+                               Class="w-100">
+                        Guardar Factura
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Default"
+                               OnClick="Cancelar"
+                               Class="w-100">
+                        Cancelar
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudCardContent>
+</MudCard>
+
+
+@code {
+    private Factura factura = new();
+    private MudForm form;
+
+    private void AgregarDetalle()
+    {
+        factura.Detail.Add(new DetalleFactura());
+    }
+
+    private void RemoverDetalle(int index)
+    {
+        factura.Detail.RemoveAt(index);
+    }
+
+    private async Task GuardarFactura()
+    {
+
+        await form.Validate();
+
+        if (!form.IsValid)
+        {
+            Snackbar.Add("Por favor completa todos los campos requeridos.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            factura.Total = factura.Detail.Sum(d => d.Subtotal);
+
+            var facturaCreada = await FacturaService.CreateFactura(factura);
+
+            Snackbar.Add("Factura creada exitosamente", Severity.Success);
+            Navigation.NavigateTo("/facturas");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/facturas");
+    }
+
+    protected override void OnInitialized()
+    {
+        AgregarDetalle();
+    }
+}
